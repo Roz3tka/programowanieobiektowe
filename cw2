@@ -1,0 +1,49 @@
+using System;
+
+public class zwierze
+{
+    protected string nazwa;
+    public zwierze(string n)
+    {
+        nazwa = n;
+    }
+    public virtual void dajglos()
+    {
+        Console.WriteLine("...");
+    }
+}
+public class pies:zwierze
+{
+    public pies(string nazwa) : base(nazwa) { }
+    public override void dajglos()
+    {
+        Console.WriteLine($"{nazwa} robi woof woof!");
+    }
+}
+public class kot : zwierze
+{
+    public kot(string nazwa) : base(nazwa) { }
+
+    public override void dajglos()
+    {
+        Console.WriteLine($"{nazwa} robi miau miau!");
+    }
+}
+public class waz : zwierze
+{
+    public waz(string nazwa) : base(nazwa) { }
+
+    public override void dajglos()
+    {
+        Console.WriteLine($"{nazwa} robi sssss!");
+    }
+}
+
+static class utils
+{
+    public static void powiedzcos(zwierze z)
+    {
+        Console.WriteLine($"typ obiektu:{z.GetType().Name}");
+        z.dajglos();
+    }
+}
