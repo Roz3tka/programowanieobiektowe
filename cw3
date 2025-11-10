@@ -78,10 +78,13 @@ public class ComplexNumber : ICloneable, IEquatable<ComplexNumber>
     {
         return !(a == b);
     }
-
-    // sprzężenie liczby zespolonej
     public static ComplexNumber operator -(ComplexNumber a)
     {
         return new ComplexNumber(a.re, -a.im);
     }
+     public double Module()
+    {
+        return Math.Sqrt(re * re + im * im);
+    }
+}
 }
