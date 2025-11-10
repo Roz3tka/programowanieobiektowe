@@ -2,8 +2,8 @@ using System;
 
 public class ComplexNumber : ICloneable, IEquatable<ComplexNumber>
 {
-    private double re; // część rzeczywista
-    private double im; // część urojona
+    private double re;
+    private double im;
 
     public double Re
     {
