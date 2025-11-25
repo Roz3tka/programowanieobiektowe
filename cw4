@@ -1,0 +1,162 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+public interface IModular
+{
+    double Module();
+}
+
+public class ComplexNumber : ICloneable, IEquatable<ComplexNumber>, IModular, IComparable<ComplexNumber>
+{
+    private double re;
+    private double im;
+
+    public double Re { get => re; set => re = value; }
+    public double Im { get => im; set => im = value; }
+
+    public ComplexNumber(double re, double im)
+    {
+        this.re = re; 
+        this.im = im;
+    }
+
+    public override string ToString()
+    {
+        string sign = im >= 0 ? "+" : "-";
+        return $"{re} {sign} {Math.Abs(im)}i";
+    }
+
+    public static ComplexNumber operator +(ComplexNumber a, ComplexNumber b)
+        => new ComplexNumber(a.re + b.re, a.im + b.im);
+
+    public static ComplexNumber operator -(ComplexNumber a, ComplexNumber b)
+        => new ComplexNumber(a.re - b.re, a.im - b.im);
+
+    public static ComplexNumber operator *(ComplexNumber a, ComplexNumber b)
+        => new ComplexNumber(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re);
+
+    public static ComplexNumber operator -(ComplexNumber a)
+        => new ComplexNumber(a.re, -a.im);
+
+    public object Clone() => new ComplexNumber(re, im);
+
+    public bool Equals(ComplexNumber other)
+    {
+        if (other == null) return false;
+        return re == other.re && im == other.im;
+    }
+
+    public override bool Equals(object obj)
+        => obj is ComplexNumber other && Equals(other);
+
+    public override int GetHashCode()
+        => HashCode.Combine(re, im);
+
+    public static bool operator ==(ComplexNumber a, ComplexNumber b)
+        => a?.Equals(b) ?? b is null;
+
+    public static bool operator !=(ComplexNumber a, ComplexNumber b)
+        => !(a == b);
+
+    public double Module()
+        => Math.Sqrt(re * re + im * im);
+
+    public int CompareTo(ComplexNumber other)
+    {
+        if (other == null) return 1;
+        return this.Module().CompareTo(other.Module());
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        ComplexNumber[] tab =
+        {
+            new ComplexNumber(1, 2),
+            new ComplexNumber(3, -4),
+            new ComplexNumber(-2, 5),
+            new ComplexNumber(3, 1),
+            new ComplexNumber(-1, -3)
+        };
+
+        Console.WriteLine("Tablica:");
+        foreach (var z in tab)
+            Console.WriteLine(z);
+
+        Array.Sort(tab);
+        Console.WriteLine("\nPosortowane:");
+        foreach (var z in tab)
+            Console.WriteLine($"{z}  |mod| = {z.Module()}");
+
+        Console.WriteLine($"\nMinimum: {tab.Min()}");
+        Console.WriteLine($"Maksimum: {tab.Max()}");
+
+        Console.WriteLine("\nLiczby z im < 0:");
+        foreach (var z in tab.Where(z => z.Im < 0))
+            Console.WriteLine(z);
+
+        List<ComplexNumber> lista = new List<ComplexNumber>
+        {
+            new ComplexNumber(6, 7),
+            new ComplexNumber(1, 2),
+            new ComplexNumber(3, -1),
+            new ComplexNumber(2, 4),
+            new ComplexNumber(-2, -3)
+        };
+
+        Console.WriteLine("\nLista:");
+        lista.ForEach(z => Console.WriteLine(z));
+
+        lista.RemoveAt(1);
+        Console.WriteLine("\nPo usunieciu drugiego elementu:");
+        lista.ForEach(z => Console.WriteLine(z));
+
+        var min = lista.Min();
+        lista.Remove(min);
+        Console.WriteLine("\nPo usunieciu najmniejszego:");
+        lista.ForEach(z => Console.WriteLine(z));
+
+        lista.Clear();
+        Console.WriteLine("\nPo wyczyszczeniu listy (liczba elementow: " + lista.Count + ")");
+
+        HashSet<ComplexNumber> set = new HashSet<ComplexNumber>
+        {
+            new ComplexNumber(6,7),
+            new ComplexNumber(1,2),
+            new ComplexNumber(6,7),
+            new ComplexNumber(1,-2),
+            new ComplexNumber(-5,9)
+        };
+
+        Console.WriteLine("\nZbior:");
+        foreach (var z in set)
+            Console.WriteLine(z);
+
+        Console.WriteLine("\nMinimum: " + set.Min());
+        Console.WriteLine("Maksimum: " + set.Max());
+
+        Console.WriteLine("\nPosortowany zbior:");
+        foreach (var z in set.OrderBy(x => x))
+            Console.WriteLine(z);
+
+        Console.WriteLine("\nElementy z im < 0:");
+        foreach (var z in set.Where(x => x.Im < 0))
+            Console.WriteLine(z);
+
+        Dictionary<string, ComplexNumber> slownik = new Dictionary<string, ComplexNumber>
+        {
+            { "z1", new ComplexNumber(6,7) },
+            { "z2", new ComplexNumber(1,2) },
+            { "z3", new ComplexNumber(6,7) },
+            { "z4", new ComplexNumber(1,-2) },
+            { "z5", new ComplexNumber(-5,9) }
+        };
+
+        Console.WriteLine("\nSlownik:");
+        foreach (var kv in slownik)
+            Console.WriteLine($"{kv.Key} -> {kv.Value}");
+    }
+}
