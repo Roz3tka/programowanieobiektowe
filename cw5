@@ -1,1 +1,292 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
+using System.Xml.Serialization;
+
+public class Student
+{
+    public string Imie { get; set; }
+    public string Nazwisko { get; set; }
+    public List<int> Oceny { get; set; }
+}
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        while (true)
+        {
+            Console.WriteLine("\nWybierz zadanie (0 = wyjscie):");
+            Console.WriteLine("2 - Zapis kilku linii do pliku");
+            Console.WriteLine("3 - Odczyt pliku linia po linii");
+            Console.WriteLine("4 - Dopisywanie nowych linii do pliku");
+            Console.WriteLine("6 - JSON zapis studentow");
+            Console.WriteLine("7 - JSON odczyt studentow");
+            Console.WriteLine("8 - XML zapis studentow");
+            Console.WriteLine("9 - XML odczyt studentow");
+            Console.WriteLine("10 - Odczytaj Iris.csv");
+            Console.WriteLine("11 - Srednie kolumn Iris.csv");
+            Console.WriteLine("12 - Filtr Iris.csv -> iris_filtered.csv");
+            Console.Write("Wybor: ");
+
+            string wybor = Console.ReadLine();
+            if (wybor == "0") break;
+            switch (wybor)
+            {
+                case "2": Zadanie2_ZapisDoPliku(); break;
+                case "3": Zadanie3_OdczytPliku(); break;
+                case "4": Zadanie4_DopiszDoPliku(); break;
+                case "6": Zadanie6_JsonZapis(); break;
+                case "7": Zadanie7_JsonOdczyt(); break;
+                case "8": Zadanie8_XmlZapis(); break;
+                case "9": Zadanie9_XmlOdczyt(); break;
+                case "10": Zadanie10_CzytajCSV(); break;
+                case "11": Zadanie11_SrednieCSV(); break;
+                case "12": Zadanie12_FiltrCSV(); break;
+                default: Console.WriteLine("Nieznany wybor."); break;
+            }
+        }
+    }
+
+    static void Zadanie2_ZapisDoPliku()
+    {
+        Console.Write("Ile linii wpisac? ");
+        if (!int.TryParse(Console.ReadLine(), out int n) || n <= 0)
+        {
+            Console.WriteLine("Zly numer.");
+            return;
+        }
+
+        List<string> lines = new List<string>();
+        for (int i = 0; i < n; i++)
+        {
+            Console.Write("Wpisz tekst: ");
+            lines.Add(Console.ReadLine() ?? "");
+        }
+
+        File.WriteAllLines("dane.txt", lines);
+        Console.WriteLine("Zapisano dane.txt");
+    }
+
+    static void Zadanie3_OdczytPliku()
+    {
+        if (!File.Exists("dane.txt"))
+        {
+            Console.WriteLine("Brak pliku dane.txt");
+            return;
+        }
+
+        string[] lines = File.ReadAllLines("dane.txt");
+        foreach (var l in lines)
+            Console.WriteLine(l);
+    }
+
+    static void Zadanie4_DopiszDoPliku()
+    {
+        Console.Write("Ile linii dopisac? ");
+        if (!int.TryParse(Console.ReadLine(), out int n) || n <= 0)
+        {
+            Console.WriteLine("Zly numer.");
+            return;
+        }
+
+        using StreamWriter sw = new StreamWriter("dane.txt", true);
+        for (int i = 0; i < n; i++)
+        {
+            Console.Write("Podaj tekst do dopisania: ");
+            sw.WriteLine(Console.ReadLine() ?? "");
+        }
+        Console.WriteLine("Dopisano do dane.txt");
+    }
+
+    static void Zadanie6_JsonZapis()
+    {
+        List<Student> lista = new List<Student>
+        {
+            new Student{ Imie="Jan", Nazwisko="Kowalski", Oceny = new List<int>{5,4,3} },
+            new Student{ Imie="Anna", Nazwisko="Nowak", Oceny = new List<int>{4,5,4} },
+            new Student{ Imie="Marek", Nazwisko="Lis", Oceny = new List<int>{3,3,4} }
+        };
+
+        string json = JsonSerializer.Serialize(lista, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText("studenci.json", json);
+        Console.WriteLine("Zapisano studenci.json");
+    }
+
+    static void Zadanie7_JsonOdczyt()
+    {
+        if (!File.Exists("studenci.json"))
+        {
+            Console.WriteLine("Brak pliku studenci.json");
+            return;
+        }
+
+        string json = File.ReadAllText("studenci.json");
+        try
+        {
+            var lista = JsonSerializer.Deserialize<List<Student>>(json);
+            if (lista == null) { Console.WriteLine("Brak danych."); return; }
+
+            foreach (var s in lista)
+                Console.WriteLine($"{s.Imie} {s.Nazwisko} oceny: {string.Join(",", s.Oceny)}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Blad JSON: " + ex.Message);
+        }
+    }
+
+    static void Zadanie8_XmlZapis()
+    {
+        List<Student> lista = new List<Student>
+        {
+            new Student{ Imie="Ewa", Nazwisko="Kozak", Oceny = new List<int>{5,5,5} },
+            new Student{ Imie="Piotr", Nazwisko="Zielinski", Oceny = new List<int>{4,3,4} }
+        };
+
+        XmlSerializer xs = new XmlSerializer(typeof(List<Student>));
+        using StreamWriter sw = new StreamWriter("studenci.xml");
+        xs.Serialize(sw, lista);
+        Console.WriteLine("Zapisano studenci.xml");
+    }
+
+    static void Zadanie9_XmlOdczyt()
+    {
+        if (!File.Exists("studenci.xml"))
+        {
+            Console.WriteLine("Brak pliku studenci.xml");
+            return;
+        }
+
+        XmlSerializer xs = new XmlSerializer(typeof(List<Student>));
+        using StreamReader sr = new StreamReader("studenci.xml");
+        try
+        {
+            var lista = (List<Student>)xs.Deserialize(sr);
+            foreach (var s in lista)
+                Console.WriteLine($"{s.Imie} {s.Nazwisko} oceny: {string.Join(",", s.Oceny)}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Blad XML: " + ex.Message);
+        }
+    }
+
+    static void Zadanie10_CzytajCSV()
+    {
+        if (!File.Exists("Iris.csv"))
+        {
+            Console.WriteLine("Brak pliku Iris.csv");
+            return;
+        }
+
+        string[] lines = File.ReadAllLines("Iris.csv");
+        foreach (var l in lines)
+            Console.WriteLine(l);
+    }
+
+    static void Zadanie11_SrednieCSV()
+    {
+        if (!File.Exists("Iris.csv"))
+        {
+            Console.WriteLine("Brak pliku Iris.csv");
+            return;
+        }
+
+        string[] lines = File.ReadAllLines("Iris.csv");
+        if (lines.Length <= 1)
+        {
+            Console.WriteLine("Brak danych.");
+            return;
+        }
+
+        double sum1 = 0, sum2 = 0, sum3 = 0, sum4 = 0;
+        int count = 0;
+        for (int i = 1; i < lines.Length; i++)
+        {
+            string line = lines[i].Trim();
+            if (string.IsNullOrEmpty(line)) continue;
+            string[] p = line.Split(',');
+
+            if (p.Length < 4) continue;
+            if (double.TryParse(p[0], out double v1) &&
+                double.TryParse(p[1], out double v2) &&
+                double.TryParse(p[2], out double v3) &&
+                double.TryParse(p[3], out double v4))
+            {
+                sum1 += v1; sum2 += v2; sum3 += v3; sum4 += v4;
+                count++;
+            }
+        }
+
+        if (count == 0)
+        {
+            Console.WriteLine("Brak numerycznych wierszy.");
+            return;
+        }
+
+        Console.WriteLine("Srednie kolumn:");
+        Console.WriteLine("sepal length = " + (sum1 / count));
+        Console.WriteLine("sepal width  = " + (sum2 / count));
+        Console.WriteLine("petal length = " + (sum3 / count));
+        Console.WriteLine("petal width  = " + (sum4 / count));
+    }
+
+    static void Zadanie12_FiltrCSV()
+    {
+        if (!File.Exists("Iris.csv"))
+        {
+            Console.WriteLine("Brak pliku Iris.csv");
+            return;
+        }
+
+        string[] lines = File.ReadAllLines("Iris.csv");
+        if (lines.Length == 0)
+        {
+            Console.WriteLine("Pusty plik.");
+            return;
+        }
+
+        string header = lines[0];
+        string[] cols = header.Split(',');
+        int idxSepalLength = -1, idxSepalWidth = -1, idxClass = -1;
+
+        for (int i = 0; i < cols.Length; i++)
+        {
+            string name = cols[i].Trim().ToLower();
+            if (name == "sepal length") idxSepalLength = i;
+            if (name == "sepal width") idxSepalWidth = i;
+            if (name == "class") idxClass = i;
+        }
+
+        if (idxSepalLength == -1) idxSepalLength = 0;
+        if (idxSepalWidth == -1) idxSepalWidth = 1;
+        if (idxClass == -1) idxClass = Math.Min(4, cols.Length - 1);
+
+        List<string> output = new List<string>();
+        output.Add("sepal length,sepal width,class");
+
+        for (int i = 1; i < lines.Length; i++)
+        {
+            string line = lines[i].Trim();
+            if (string.IsNullOrEmpty(line)) continue;
+            string[] p = line.Split(',');
+            if (p.Length <= Math.Max(Math.Max(idxSepalLength, idxSepalWidth), idxClass)) continue;
+
+            if (double.TryParse(p[idxSepalLength], out double sepalLen))
+            {
+                if (sepalLen < 5.0)
+                {
+                    string sepalW = p[idxSepalWidth];
+                    string cls = p[idxClass];
+                    output.Add(p[idxSepalLength] + "," + sepalW + "," + cls);
+                }
+            }
+        }
+
+        File.WriteAllLines("iris_filtered.csv", output);
+        Console.WriteLine("Zapisano iris_filtered.csv. Wiersze: " + (output.Count - 1));
+    }
+}
 
