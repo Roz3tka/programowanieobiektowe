@@ -1,0 +1,6 @@
+using System;
+class Zadanie
+{
+    public int Id;
+    public string Opis;
+}
