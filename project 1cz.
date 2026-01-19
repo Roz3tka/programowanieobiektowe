@@ -10,9 +10,9 @@ class Program
         {
             Console.WriteLine("\n1-Dodaj zadanie  2-Pokaz zadania  3-Usun zadanie  0-Wyjdz");
             string wybor = Console.ReadLine();
-            if (wybor == "1") Dodaj();  // CREATE
-            if (wybor == "2") Pokaz();  // READ
-            if (wybor == "3") Usun();   // DELETE
+            if (wybor == "1") Dodaj();
+            if (wybor == "2") Pokaz();
+            if (wybor == "3") Usun();
             if (wybor == "0") break;
         }
     }
