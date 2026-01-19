@@ -1,180 +1,128 @@
 using Microsoft.Data.SqlClient;
 
-public class Student
+class Osoba
 {
-    public int StudentId { get; set; }
-    public string Imie { get; set; } = string.Empty;
-    public string Nazwisko { get; set; } = string.Empty;
-    public List<Ocena> Oceny { get; set; } = new List<Ocena>();
+    public int Id { get; set; }
+    public string Imie { get; set; } = "";
+    public string Nazwisko { get; set; } = "";
+    public List<WpisOceny> ListaOcen { get; set; } = new();
 }
 
-public class Ocena
+class WpisOceny
 {
-    public int OcenaId { get; set; }
-    public double Wartosc { get; set; }
-    public string Przedmiot { get; set; } = string.Empty;
-    public int StudentId { get; set; }
+    public int Id { get; set; }
+    public double Ocena { get; set; }
+    public string Przedmiot { get; set; } = "";
 }
 
-public class Program
+class App
 {
-    public static void Main()
+    static string connStr =
+        "Server=10.200.2.28;Database=studenci_72231;Integrated Security=True;Encrypt=True;TrustServerCertificate=True";
+
+    static void Main()
     {
-        string dbConnStr = "Server=10.200.2.28;Database=studenci_72231;Integrated Security=True;Encrypt=True;TrustServerCertificate=True";
+        using SqlConnection con = new(connStr);
+        con.Open();
 
-        try
-        {
-            using (var polaczenie = new SqlConnection(dbConnStr))
-            {
-                polaczenie.Open();
-                Console.WriteLine("Połączenie aktywne.\n");
+        PokazStudentow(con);
+        PokazStudenta(con, 1);
 
-                Console.WriteLine("--- ZADANIE 4: Przegląd tabeli Student ---");
-                WyswietlWszystkichStudentow(polaczenie);
+        DodajOsobe(con, "Adam", "Nowak");
+        DodajWpis(con, 1, "Informatyka", 4.0);
 
-                Console.WriteLine("\n--- ZADANIE 5: Pobieranie rekordu ID=1 ---");
-                WypiszStudentaPoId(polaczenie, 1);
+        ZmienOcene(con, 1, 5.0);
+        SkasujGeografie(con);
 
-                Console.WriteLine("\n--- ZADANIE 7: Rejestracja nowej osoby ---");
-                var s = new Student { Imie = "Jan", Nazwisko = "Kowalski" };
-                DodajStudenta(polaczenie, s);
-
-                Console.WriteLine("\n--- ZADANIE 8: Wprowadzanie ocen ---");
-                DodajOcene(polaczenie, new Ocena { Wartosc = 2.5, Przedmiot = "Matematyka", StudentId = 1 });
-                DodajOcene(polaczenie, new Ocena { Wartosc = 4.5, Przedmiot = "Geografia", StudentId = 1 });
-
-                Console.WriteLine("\n--- ZADANIE 10: Korekta oceny ---");
-                ZaktualizujOcene(polaczenie, 1, 5.0);
-
-                Console.WriteLine("\n--- ZADANIE 9: Czyszczenie ocen z Geografii ---");
-                UsunOcenyZGeografii(polaczenie);
-
-                Console.WriteLine("\n--- ZADANIE 6: Raport zbiorczy ---");
-                var lista = PobierzStudentowZOcenami(polaczenie);
-                lista.ForEach(stu => {
-                    Console.WriteLine($"Osoba: {stu.Imie} {stu.Nazwisko} [ID: {stu.StudentId}]");
-                    if (stu.Oceny.Any())
-                        stu.Oceny.ForEach(o => Console.WriteLine($"   > {o.Przedmiot}: {o.Wartosc}"));
-                    else
-                        Console.WriteLine("   > Brak danych o ocenach");
-                });
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("Błąd podczas pracy z bazą: " + ex.Message);
-        }
+        Raport(con);
     }
 
-    public static void WyswietlWszystkichStudentow(SqlConnection pol)
+    static void PokazStudentow(SqlConnection con)
     {
-        string zapytanie = "SELECT * FROM Student";
-        using SqlCommand cmd = new SqlCommand(zapytanie, pol);
-        using SqlDataReader dr = cmd.ExecuteReader();
+        string sql = "SELECT student_id, imie, nazwisko FROM Student";
+        using SqlCommand cmd = new(sql, con);
+        using SqlDataReader r = cmd.ExecuteReader();
 
-        while (dr.Read())
-        {
-            Console.WriteLine($"{dr["student_id"]} | {dr["imie"]} {dr["nazwisko"]}");
-        }
+        while (r.Read())
+            Console.WriteLine($"{r[0]} -> {r[1]} {r[2]}");
     }
 
-    public static void WypiszStudentaPoId(SqlConnection pol, int id)
+    static void PokazStudenta(SqlConnection con, int id)
     {
-        string sql = "SELECT imie, nazwisko FROM Student WHERE student_id = @idKey";
-        using var cmd = new SqlCommand(sql, pol);
-        cmd.Parameters.AddWithValue("@idKey", id);
+        string sql = "SELECT imie, nazwisko FROM Student WHERE student_id=@id";
+        using SqlCommand cmd = new(sql, con);
+        cmd.Parameters.AddWithValue("@id", id);
 
-        using var dr = cmd.ExecuteReader();
-        if (dr.Read()) Console.WriteLine($"Rezultat: {dr["imie"]} {dr["nazwisko"]}");
+        using var r = cmd.ExecuteReader();
+        if (r.Read())
+            Console.WriteLine($"Student: {r[0]} {r[1]}");
     }
 
-    public static List<Student> PobierzStudentowZOcenami(SqlConnection pol)
+    static void DodajOsobe(SqlConnection con, string imie, string nazwisko)
     {
-        var wykaz = new List<Student>();
-        using (var cmd = new SqlCommand("SELECT * FROM Student", pol))
-        using (var dr = cmd.ExecuteReader())
-        {
-            while (dr.Read())
-            {
-                wykaz.Add(new Student
-                {
-                    StudentId = (int)dr["student_id"],
-                    Imie = dr["imie"].ToString(),
-                    Nazwisko = dr["nazwisko"].ToString()
-                });
-            }
-        }
-
-        foreach (var student in wykaz)
-        {
-            using var cmdOceny = new SqlCommand("SELECT * FROM Ocena WHERE student_id = @id", pol);
-            cmdOceny.Parameters.AddWithValue("@id", student.StudentId);
-            using var drOceny = cmdOceny.ExecuteReader();
-            while (drOceny.Read())
-            {
-                student.Oceny.Add(new Ocena
-                {
-                    OcenaId = (int)drOceny["ocena_id"],
-                    Wartosc = Convert.ToDouble(drOceny["Wartosc"]),
-                    Przedmiot = drOceny["Przedmiot"].ToString(),
-                    StudentId = student.StudentId
-                });
-            }
-        }
-        return wykaz;
-    }
-
-    public static void DodajStudenta(SqlConnection pol, Student s)
-    {
-        string insert = "INSERT INTO Student (imie, nazwisko) VALUES (@i, @n)";
-        using var cmd = new SqlCommand(insert, pol);
-        cmd.Parameters.AddWithValue("@i", s.Imie);
-        cmd.Parameters.AddWithValue("@n", s.Nazwisko);
-
-        int wyn = cmd.ExecuteNonQuery();
-        Console.WriteLine($"Dodano pomyślnie. Rekordy: {wyn}");
-    }
-
-    private static bool WalidujOcene(double stopien)
-    {
-        if (stopien < 2.0 || stopien > 5.0 || stopien == 2.5) return false;
-        return (stopien * 10) % 5 == 0;
-    }
-
-    public static void DodajOcene(SqlConnection pol, Ocena o)
-    {
-        if (!WalidujOcene(o.Wartosc))
-        {
-            Console.WriteLine($"Nieprawidłowa wartość: {o.Wartosc}");
-            return;
-        }
-
-        string sql = "INSERT INTO Ocena (Wartosc, Przedmiot, student_id) VALUES (@v, @p, @s)";
-        using var cmd = new SqlCommand(sql, pol);
-        cmd.Parameters.AddWithValue("@v", o.Wartosc);
-        cmd.Parameters.AddWithValue("@p", o.Przedmiot);
-        cmd.Parameters.AddWithValue("@s", o.StudentId);
-
+        string sql = "INSERT INTO Student(imie, nazwisko) VALUES(@i,@n)";
+        using SqlCommand cmd = new(sql, con);
+        cmd.Parameters.AddWithValue("@i", imie);
+        cmd.Parameters.AddWithValue("@n", nazwisko);
         cmd.ExecuteNonQuery();
-        Console.WriteLine($"Ocena {o.Wartosc} zapisana.");
     }
 
-    public static void UsunOcenyZGeografii(SqlConnection pol)
+    static bool PoprawnaOcena(double o)
+        => o >= 2.0 && o <= 5.0 && o % 0.5 == 0;
+
+    static void DodajWpis(SqlConnection con, int sid, string p, double o)
     {
-        using var cmd = new SqlCommand("DELETE FROM Ocena WHERE Przedmiot LIKE 'Geografia'", pol);
-        int ile = cmd.ExecuteNonQuery();
-        Console.WriteLine($"Usunięte wiersze: {ile}");
+        if (!PoprawnaOcena(o)) return;
+
+        string sql = "INSERT INTO Ocena(Wartosc,Przedmiot,student_id) VALUES(@w,@p,@s)";
+        using SqlCommand cmd = new(sql, con);
+        cmd.Parameters.AddWithValue("@w", o);
+        cmd.Parameters.AddWithValue("@p", p);
+        cmd.Parameters.AddWithValue("@s", sid);
+        cmd.ExecuteNonQuery();
     }
 
-    public static void ZaktualizujOcene(SqlConnection pol, int idOceny, double nowaSkala)
+    static void ZmienOcene(SqlConnection con, int oid, double nowa)
     {
-        if (!WalidujOcene(nowaSkala)) return;
+        if (!PoprawnaOcena(nowa)) return;
 
-        string update = "UPDATE Ocena SET Wartosc = @val WHERE ocena_id = @id";
-        using var cmd = new SqlCommand(update, pol);
-        cmd.Parameters.AddWithValue("@val", nowaSkala);
-        cmd.Parameters.AddWithValue("@id", idOceny);
+        string sql = "UPDATE Ocena SET Wartosc=@w WHERE ocena_id=@id";
+        using SqlCommand cmd = new(sql, con);
+        cmd.Parameters.AddWithValue("@w", nowa);
+        cmd.Parameters.AddWithValue("@id", oid);
+        cmd.ExecuteNonQuery();
+    }
 
-        if (cmd.ExecuteNonQuery() > 0) Console.WriteLine("Aktualizacja zakończona.");
+    static void SkasujGeografie(SqlConnection con)
+    {
+        using SqlCommand cmd =
+            new("DELETE FROM Ocena WHERE Przedmiot='Geografia'", con);
+        cmd.ExecuteNonQuery();
+    }
+
+    static void Raport(SqlConnection con)
+    {
+        string sql = """
+        SELECT s.student_id, s.imie, s.nazwisko, o.Przedmiot, o.Wartosc
+        FROM Student s
+        LEFT JOIN Ocena o ON s.student_id = o.student_id
+        ORDER BY s.student_id
+        """;
+
+        using SqlCommand cmd = new(sql, con);
+        using SqlDataReader r = cmd.ExecuteReader();
+
+        int lastId = -1;
+        while (r.Read())
+        {
+            int id = (int)r["student_id"];
+            if (id != lastId)
+            {
+                Console.WriteLine($"\n{id}: {r["imie"]} {r["nazwisko"]}");
+                lastId = id;
+            }
+            if (r["Przedmiot"] != DBNull.Value)
+                Console.WriteLine($"  {r["Przedmiot"]}: {r["Wartosc"]}");
+        }
     }
 }
